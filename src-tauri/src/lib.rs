@@ -1,5 +1,6 @@
 mod db;
 mod scanner;
+mod thumbs;
 
 use tauri::Manager;
 

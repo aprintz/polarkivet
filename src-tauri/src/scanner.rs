@@ -31,6 +31,7 @@ fn do_scan(app: AppHandle, app_dir: PathBuf, path: String) -> Result<u64, String
     }
 
     let conn = crate::db::open(&app_dir).map_err(|e| e.to_string())?;
+    let thumbs_dir = app_dir.join("thumbs");
 
     let mut scanned: u64 = 0;
     let mut found: u64 = 0;
@@ -75,6 +76,19 @@ fn do_scan(app: AppHandle, app_dir: PathBuf, path: String) -> Result<u64, String
 
         found += 1;
 
+        // Fill metadata for rows that don't have it yet (new inserts or Phase 1 legacy rows).
+        let needs_meta: bool = conn
+            .query_row(
+                "SELECT width IS NULL FROM images WHERE path = ?1",
+                rusqlite::params![path_str],
+                |row| row.get(0),
+            )
+            .unwrap_or(false);
+
+        if needs_meta {
+            let _ = fill_metadata(&conn, file_path, &path_str, &thumbs_dir);
+        }
+
         let _ = app.emit(
             "scan-progress",
             ScanProgress {
@@ -86,4 +100,49 @@ fn do_scan(app: AppHandle, app_dir: PathBuf, path: String) -> Result<u64, String
     }
 
     Ok(found)
+}
+
+/// Extract image dimensions, EXIF date, and generate a thumbnail.
+/// Updates the DB row in place. Errors are logged but not fatal.
+fn fill_metadata(
+    conn: &rusqlite::Connection,
+    file_path: &Path,
+    path_str: &str,
+    thumbs_dir: &Path,
+) -> Result<(), String> {
+    // Open image once for dimensions + thumbnail.
+    let img = image::open(file_path).map_err(|e| e.to_string())?;
+    let (width, height) = img.dimensions();
+
+    // Generate thumbnail.
+    let thumb_path = crate::thumbs::generate_from_image(&img, file_path, thumbs_dir)
+        .ok()
+        .map(|p| p.to_string_lossy().to_string());
+
+    // Extract EXIF date (best-effort; many formats have no EXIF).
+    let taken_at = extract_exif_date(file_path);
+
+    conn.execute(
+        "UPDATE images SET width = ?1, height = ?2, taken_at = ?3, thumb_path = ?4
+         WHERE path = ?5",
+        rusqlite::params![width as i64, height as i64, taken_at, thumb_path, path_str],
+    )
+    .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+fn extract_exif_date(path: &Path) -> Option<String> {
+    let file = std::fs::File::open(path).ok()?;
+    let mut reader = std::io::BufReader::new(file);
+    let exif = exif::Reader::new()
+        .read_from_container(&mut reader)
+        .ok()?;
+    let field = exif.get_field(exif::Tag::DateTimeOriginal, exif::In::PRIMARY)?;
+    let raw = field.display_value().to_string();
+    // EXIF format: "2023-01-15 14:30:00" or "2023:01:15 14:30:00"
+    let normalised = raw.replacen(':', "-", 2); // fix date separator only
+    chrono::NaiveDateTime::parse_from_str(&normalised, "%Y-%m-%d %H:%M:%S")
+        .ok()
+        .map(|dt| dt.format("%Y-%m-%dT%H:%M:%S").to_string())
 }

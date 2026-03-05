@@ -42,7 +42,7 @@ See [.claude/plans/architecture.md](.claude/plans/architecture.md) for the full 
 | Phase | Goal | Status |
 |---|---|---|
 | 1 | Scaffold + SQLite schema + basic scanner | complete |
-| 2 | EXIF metadata + thumbnail generation | pending |
+| 2 | EXIF metadata + thumbnail generation | complete |
 | 3 | React thumbnail grid UI | pending |
 | 4 | Full-text search (FTS5) + date filter | pending |
 | 5 | Lightbox + settings + first-run UX | pending |
