@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import headerBg from "./assets/header-bg.png";
 import { ScanProgress } from "./components/ScanProgress";
 import { ImageGrid } from "./components/ImageGrid";
 import { SearchBar } from "./components/SearchBar";
@@ -81,7 +82,17 @@ function App() {
     setLightboxIndex(index);
   }, []);
 
+  // When keywords are updated in Lightbox, patch the local copy so the UI stays in sync
+  const handleKeywordsUpdated = useCallback((id: number, keywords: string) => {
+    setLightboxImages((imgs) =>
+      imgs.map((img) => (img.id === id ? { ...img, keywords } : img))
+    );
+    // Invalidate queries so grid/search results reflect the new keywords
+    invalidateImages();
+  }, [invalidateImages]);
+
   const showWelcome = config !== null && !config.scan_root;
+  const hasPath = Boolean(path);
 
   return (
     <div
@@ -89,7 +100,7 @@ function App() {
         display: "flex",
         flexDirection: "column",
         height: "100vh",
-        background: "#0d0d0d",
+        background: "#1a1a1a",
         color: "#eee",
         fontFamily: "system-ui, sans-serif",
       }}
@@ -98,55 +109,102 @@ function App() {
         <Welcome onScanRootSet={handleWelcomeDone} />
       ) : (
         <>
-          {/* Header */}
+          {/* Hero header — image banner with title */}
           <div
             style={{
-              padding: "0.75rem 1.25rem",
-              borderBottom: "1px solid #222",
+              position: "relative",
+              height: "72px",
+              flexShrink: 0,
+              overflow: "hidden",
+            }}
+          >
+            <img
+              src={headerBg}
+              alt=""
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                objectPosition: "center 40%",
+              }}
+            />
+            {/* semi-transparent dark overlay */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: "rgba(15, 18, 20, 0.62)",
+              }}
+            />
+            <h1
+              style={{
+                position: "relative",
+                margin: 0,
+                padding: "0 1.25rem",
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                fontSize: "1.35rem",
+                fontWeight: 700,
+                letterSpacing: "0.04em",
+                color: "#fff",
+                textShadow: "0 1px 6px rgba(0,0,0,0.7)",
+              }}
+            >
+              Polarkivet
+            </h1>
+          </div>
+
+          {/* Toolbar */}
+          <div
+            style={{
+              padding: "0.6rem 1.25rem",
+              borderBottom: "1px solid #252525",
               display: "flex",
               alignItems: "center",
               gap: "1rem",
               flexShrink: 0,
               flexWrap: "wrap",
+              background: "#1a1a1a",
             }}
           >
-            <h1 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600, color: "#fff" }}>
-              Polarkivet
-            </h1>
-
-            {/* Scan controls */}
-            <div style={{ display: "flex", gap: "0.5rem" }}>
+            {/* Folder path + Rescan button */}
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
               <input
                 value={path}
                 onChange={(e) => setPath(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && runScan(path)}
+                onKeyDown={(e) => e.key === "Enter" && hasPath && runScan(path)}
                 placeholder="/path/to/images"
                 disabled={scanning}
                 style={{
-                  width: "220px",
+                  width: "260px",
                   padding: "0.4rem 0.75rem",
                   fontSize: "0.85rem",
                   borderRadius: "4px",
-                  border: "1px solid #444",
-                  background: "#111",
+                  border: "1px solid #383838",
+                  background: "#121212",
                   color: "#eee",
                   outline: "none",
                 }}
               />
               <button
                 onClick={() => runScan(path)}
-                disabled={scanning || !path}
+                disabled={scanning || !hasPath}
+                title="Scan or rescan the folder for images"
                 style={{
                   padding: "0.4rem 1rem",
                   fontSize: "0.85rem",
                   borderRadius: "4px",
                   border: "none",
-                  background: scanning || !path ? "#333" : "#2a6",
-                  color: scanning || !path ? "#666" : "#fff",
-                  cursor: scanning || !path ? "not-allowed" : "pointer",
+                  background: scanning || !hasPath ? "#282828" : "#2a6",
+                  color: scanning || !hasPath ? "#555" : "#fff",
+                  cursor: scanning || !hasPath ? "not-allowed" : "pointer",
+                  whiteSpace: "nowrap",
                 }}
               >
-                {scanning ? "Scanning…" : "Scan"}
+                {scanning ? "Scanning…" : config?.scan_root ? "Rescan" : "Scan"}
               </button>
             </div>
 
@@ -154,12 +212,7 @@ function App() {
             <SearchBar onSearch={handleSearch} />
 
             {scanResult && (
-              <span
-                style={{
-                  fontSize: "0.8rem",
-                  color: scanResult.startsWith("Error") ? "#f66" : "#6a6",
-                }}
-              >
+              <span style={{ fontSize: "0.8rem", color: scanResult.startsWith("Error") ? "#f66" : "#6a6" }}>
                 {scanResult}
               </span>
             )}
@@ -183,9 +236,7 @@ function App() {
           </div>
 
           {/* Scan progress */}
-          <div
-            style={{ padding: "0 1.25rem", paddingTop: scanning ? "0.75rem" : 0, flexShrink: 0 }}
-          >
+          <div style={{ padding: "0 1.25rem", paddingTop: scanning ? "0.75rem" : 0, flexShrink: 0 }}>
             <ScanProgress scanning={scanning} />
           </div>
 
@@ -217,6 +268,7 @@ function App() {
           currentIndex={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
           onNavigate={setLightboxIndex}
+          onKeywordsUpdated={handleKeywordsUpdated}
         />
       )}
     </div>

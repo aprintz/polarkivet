@@ -9,6 +9,10 @@ export interface ImageRecord {
   height: number | null;
   taken_at: string | null;
   thumb_path: string | null;
+  camera_make: string | null;
+  camera_model: string | null;
+  keywords: string | null;
+  description: string | null;
 }
 
 export function useImages(offset: number, limit: number, enabled = true) {

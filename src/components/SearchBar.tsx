@@ -35,7 +35,7 @@ export function SearchBar({ onSearch }: Props) {
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search filenames…"
+        placeholder="Search filenames, keywords, camera…"
         style={{ ...inputStyle, minWidth: "180px" }}
       />
       <input
