@@ -33,6 +33,19 @@ fn migrate(conn: &Connection) -> Result<()> {
         CREATE VIRTUAL TABLE IF NOT EXISTS images_fts USING fts5(
             filename, path, content=images, content_rowid=id
         );
+
+        CREATE TRIGGER IF NOT EXISTS images_fts_insert AFTER INSERT ON images BEGIN
+            INSERT INTO images_fts(rowid, filename, path) VALUES (new.id, new.filename, new.path);
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS images_fts_delete AFTER DELETE ON images BEGIN
+            INSERT INTO images_fts(images_fts, rowid, filename, path) VALUES('delete', old.id, old.filename, old.path);
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS images_fts_update AFTER UPDATE ON images BEGIN
+            INSERT INTO images_fts(images_fts, rowid, filename, path) VALUES('delete', old.id, old.filename, old.path);
+            INSERT INTO images_fts(rowid, filename, path) VALUES (new.id, new.filename, new.path);
+        END;
         ",
     )
 }

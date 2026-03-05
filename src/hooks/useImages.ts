@@ -11,10 +11,11 @@ export interface ImageRecord {
   thumb_path: string | null;
 }
 
-export function useImages(offset: number, limit: number) {
+export function useImages(offset: number, limit: number, enabled = true) {
   return useQuery({
     queryKey: ["images", offset, limit],
     queryFn: () => invoke<ImageRecord[]>("list_images", { offset, limit }),
+    enabled,
   });
 }
 

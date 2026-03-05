@@ -1,18 +1,30 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useImages } from "../hooks/useImages";
+import { useSearch } from "../hooks/useSearch";
 import { ImageCard } from "./ImageCard";
 
 const PAGE_SIZE = 200;
 
 interface Props {
   scanKey: number;
+  query: string;
+  fromDate: string;
+  toDate: string;
 }
 
-export function ImageGrid({ scanKey }: Props) {
+export function ImageGrid({ scanKey, query, fromDate, toDate }: Props) {
   const [page, setPage] = useState(0);
   const offset = page * PAGE_SIZE;
 
-  const { data, isFetching, error } = useImages(offset, PAGE_SIZE);
+  // Reset to page 0 whenever search params or scan key change
+  useEffect(() => {
+    setPage(0);
+  }, [query, fromDate, toDate, scanKey]);
+
+  const searchActive = !!(query || fromDate || toDate);
+  const listResult = useImages(offset, PAGE_SIZE, !searchActive);
+  const searchResult = useSearch(query, fromDate, toDate, offset, PAGE_SIZE, searchActive);
+  const { data, isFetching, error } = searchActive ? searchResult : listResult;
 
   if (error) {
     return (
@@ -43,9 +55,15 @@ export function ImageGrid({ scanKey }: Props) {
           lineHeight: 1.6,
         }}
       >
-        No images indexed yet.
-        <br />
-        Enter a directory path above and click <strong>Scan</strong>.
+        {searchActive ? (
+          "No images match your search."
+        ) : (
+          <>
+            No images indexed yet.
+            <br />
+            Enter a directory path above and click <strong>Scan</strong>.
+          </>
+        )}
       </div>
     );
   }

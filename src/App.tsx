@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ScanProgress } from "./components/ScanProgress";
 import { ImageGrid } from "./components/ImageGrid";
+import { SearchBar } from "./components/SearchBar";
 import { useInvalidateImages } from "./hooks/useImages";
 
 function App() {
@@ -9,6 +10,9 @@ function App() {
   const [scanning, setScanning] = useState(false);
   const [scanKey, setScanKey] = useState(0);
   const [scanResult, setScanResult] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const invalidateImages = useInvalidateImages();
 
   async function startScan() {
@@ -27,6 +31,15 @@ function App() {
       setScanning(false);
     }
   }
+
+  const handleSearch = useCallback(
+    (query: string, from: string, to: string) => {
+      setSearchQuery(query);
+      setFromDate(from);
+      setToDate(to);
+    },
+    [],
+  );
 
   return (
     <div
@@ -48,12 +61,15 @@ function App() {
           alignItems: "center",
           gap: "1rem",
           flexShrink: 0,
+          flexWrap: "wrap",
         }}
       >
         <h1 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600, color: "#fff" }}>
           Polarkivet
         </h1>
-        <div style={{ display: "flex", gap: "0.5rem", flex: 1, maxWidth: "600px" }}>
+
+        {/* Scan controls */}
+        <div style={{ display: "flex", gap: "0.5rem" }}>
           <input
             value={path}
             onChange={(e) => setPath(e.target.value)}
@@ -61,9 +77,9 @@ function App() {
             placeholder="/path/to/images"
             disabled={scanning}
             style={{
-              flex: 1,
+              width: "220px",
               padding: "0.4rem 0.75rem",
-              fontSize: "0.9rem",
+              fontSize: "0.85rem",
               borderRadius: "4px",
               border: "1px solid #444",
               background: "#111",
@@ -76,7 +92,7 @@ function App() {
             disabled={scanning || !path}
             style={{
               padding: "0.4rem 1rem",
-              fontSize: "0.9rem",
+              fontSize: "0.85rem",
               borderRadius: "4px",
               border: "none",
               background: scanning || !path ? "#333" : "#2a6",
@@ -87,6 +103,10 @@ function App() {
             {scanning ? "Scanning…" : "Scan"}
           </button>
         </div>
+
+        {/* Search controls */}
+        <SearchBar onSearch={handleSearch} />
+
         {scanResult && (
           <span style={{ fontSize: "0.8rem", color: scanResult.startsWith("Error") ? "#f66" : "#6a6" }}>
             {scanResult}
@@ -101,7 +121,12 @@ function App() {
 
       {/* Image grid */}
       <div style={{ flex: 1, overflow: "auto", padding: "0.75rem 1.25rem" }}>
-        <ImageGrid scanKey={scanKey} />
+        <ImageGrid
+          scanKey={scanKey}
+          query={searchQuery}
+          fromDate={fromDate}
+          toDate={toDate}
+        />
       </div>
     </div>
   );

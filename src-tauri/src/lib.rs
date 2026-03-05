@@ -20,6 +20,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             scanner::scan_directory,
             commands::list_images,
+            commands::search_images,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
