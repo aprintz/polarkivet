@@ -1,3 +1,4 @@
+mod commands;
 mod db;
 mod scanner;
 mod thumbs;
@@ -16,7 +17,10 @@ pub fn run() {
             db::init(&app_dir).expect("failed to initialise database");
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![scanner::scan_directory])
+        .invoke_handler(tauri::generate_handler![
+            scanner::scan_directory,
+            commands::list_images,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

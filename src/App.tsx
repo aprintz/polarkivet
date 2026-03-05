@@ -1,81 +1,108 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
-
-interface ScanProgress {
-  scanned: number;
-  found: number;
-  current_file: string;
-}
+import { ScanProgress } from "./components/ScanProgress";
+import { ImageGrid } from "./components/ImageGrid";
+import { useInvalidateImages } from "./hooks/useImages";
 
 function App() {
   const [path, setPath] = useState("");
   const [scanning, setScanning] = useState(false);
-  const [log, setLog] = useState<string[]>(["Ready. Enter a directory path and click Scan."]);
+  const [scanKey, setScanKey] = useState(0);
+  const [scanResult, setScanResult] = useState<string | null>(null);
+  const invalidateImages = useInvalidateImages();
 
   async function startScan() {
-    if (!path) return;
+    if (!path || scanning) return;
     setScanning(true);
-    setLog(["Starting scan..."]);
-
-    const unlisten = await listen<ScanProgress>("scan-progress", (event) => {
-      const p = event.payload;
-      setLog((prev) => [
-        ...prev.slice(-100),
-        `[${p.scanned} scanned | ${p.found} found] ${p.current_file}`,
-      ]);
-    });
+    setScanResult(null);
 
     try {
       const count = await invoke<number>("scan_directory", { path });
-      setLog((prev) => [...prev, ``, `Done. ${count} images indexed.`]);
+      setScanResult(`Done. ${count} images indexed.`);
+      await invalidateImages();
+      setScanKey((k) => k + 1);
     } catch (e) {
-      setLog((prev) => [...prev, `Error: ${e}`]);
+      setScanResult(`Error: ${e}`);
     } finally {
-      unlisten();
       setScanning(false);
     }
   }
 
   return (
-    <div style={{ padding: "2rem", fontFamily: "monospace", maxWidth: "900px", margin: "0 auto" }}>
-      <h1 style={{ marginBottom: "0.25rem" }}>Polarkivet</h1>
-      <p style={{ color: "#888", marginTop: 0, marginBottom: "1.5rem" }}>
-        Image catalogue for file shares
-      </p>
-      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
-        <input
-          value={path}
-          onChange={(e) => setPath(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && startScan()}
-          placeholder="/path/to/images"
-          style={{ flex: 1, padding: "0.5rem 0.75rem", fontSize: "1rem", borderRadius: "4px", border: "1px solid #555", background: "#1a1a1a", color: "#eee" }}
-          disabled={scanning}
-        />
-        <button
-          onClick={startScan}
-          disabled={scanning || !path}
-          style={{ padding: "0.5rem 1.25rem", fontSize: "1rem", borderRadius: "4px", cursor: scanning || !path ? "not-allowed" : "pointer" }}
-        >
-          {scanning ? "Scanning…" : "Scan"}
-        </button>
-      </div>
-      <pre
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100vh",
+        background: "#0d0d0d",
+        color: "#eee",
+        fontFamily: "system-ui, sans-serif",
+      }}
+    >
+      {/* Header */}
+      <div
         style={{
-          background: "#0d0d0d",
-          color: "#0f0",
-          padding: "1rem",
-          height: "500px",
-          overflow: "auto",
-          fontSize: "0.8rem",
-          borderRadius: "4px",
-          border: "1px solid #333",
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-all",
+          padding: "0.75rem 1.25rem",
+          borderBottom: "1px solid #222",
+          display: "flex",
+          alignItems: "center",
+          gap: "1rem",
+          flexShrink: 0,
         }}
       >
-        {log.join("\n")}
-      </pre>
+        <h1 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600, color: "#fff" }}>
+          Polarkivet
+        </h1>
+        <div style={{ display: "flex", gap: "0.5rem", flex: 1, maxWidth: "600px" }}>
+          <input
+            value={path}
+            onChange={(e) => setPath(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && startScan()}
+            placeholder="/path/to/images"
+            disabled={scanning}
+            style={{
+              flex: 1,
+              padding: "0.4rem 0.75rem",
+              fontSize: "0.9rem",
+              borderRadius: "4px",
+              border: "1px solid #444",
+              background: "#111",
+              color: "#eee",
+              outline: "none",
+            }}
+          />
+          <button
+            onClick={startScan}
+            disabled={scanning || !path}
+            style={{
+              padding: "0.4rem 1rem",
+              fontSize: "0.9rem",
+              borderRadius: "4px",
+              border: "none",
+              background: scanning || !path ? "#333" : "#2a6",
+              color: scanning || !path ? "#666" : "#fff",
+              cursor: scanning || !path ? "not-allowed" : "pointer",
+            }}
+          >
+            {scanning ? "Scanning…" : "Scan"}
+          </button>
+        </div>
+        {scanResult && (
+          <span style={{ fontSize: "0.8rem", color: scanResult.startsWith("Error") ? "#f66" : "#6a6" }}>
+            {scanResult}
+          </span>
+        )}
+      </div>
+
+      {/* Scan progress */}
+      <div style={{ padding: "0 1.25rem", paddingTop: scanning ? "0.75rem" : 0, flexShrink: 0 }}>
+        <ScanProgress scanning={scanning} />
+      </div>
+
+      {/* Image grid */}
+      <div style={{ flex: 1, overflow: "auto", padding: "0.75rem 1.25rem" }}>
+        <ImageGrid scanKey={scanKey} />
+      </div>
     </div>
   );
 }
