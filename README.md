@@ -21,6 +21,26 @@ Polarkivet runs on Mac and Windows with no server infrastructure required. Downl
 | Search | SQLite FTS5 |
 | Thumbnails | Cached in OS AppData via `image` crate |
 
+## Distribution
+
+### macOS
+
+Run `./build.sh` from the repo root. This produces `dist-mac/Polarkivet.dmg` — a universal binary (arm64 + x86_64) that is ad-hoc signed to reduce Gatekeeper friction.
+
+Users download the DMG, drag **Polarkivet.app** to Applications (or run directly), and on first launch may need to right-click → **Open** to bypass Gatekeeper.
+
+Place the `.dmg` on the file share so users can download and run it without any installation of Rust or Node.
+
+### Windows
+
+Run `.\build.ps1` from the repo root in PowerShell. This produces an NSIS installer `.exe` in `src-tauri/target/release/bundle/nsis/`.
+
+The installer bundles the WebView2 runtime and produces a standalone binary. No Rust, Node, or other dependencies required on the target machine.
+
+Place the installer `.exe` on the file share.
+
+---
+
 ## Development
 
 ### Prerequisites
@@ -39,6 +59,13 @@ cargo tauri dev
 ### Build release binary
 
 ```bash
+# macOS (universal binary + DMG)
+./build.sh
+
+# Windows (NSIS installer)
+.\build.ps1
+
+# Or build for current platform only
 cargo tauri build
 ```
 

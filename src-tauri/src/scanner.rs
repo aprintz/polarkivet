@@ -218,7 +218,6 @@ pub fn extract_xmp_keywords(path: &Path) -> String {
 }
 
 fn parse_xmp_keywords_from_jpeg(jpeg: &img_parts::jpeg::Jpeg) -> String {
-    use img_parts::ImageEXIF;
     // Walk all APP1 segments looking for XMP
     for segment in jpeg.segments() {
         if segment.marker() != img_parts::jpeg::markers::APP1 {
