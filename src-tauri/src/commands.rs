@@ -16,7 +16,7 @@ pub struct ImageRecord {
 pub async fn list_images(app: AppHandle, offset: i64, limit: i64) -> Result<Vec<ImageRecord>, String> {
     let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
 
-    tokio::task::spawn_blocking(move || {
+    tauri::async_runtime::spawn_blocking(move || {
         let conn = crate::db::open(&app_dir).map_err(|e| e.to_string())?;
 
         let mut stmt = conn

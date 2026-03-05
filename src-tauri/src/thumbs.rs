@@ -1,4 +1,4 @@
-use image::{imageops::FilterType, DynamicImage};
+use image::DynamicImage;
 use std::path::{Path, PathBuf};
 
 const THUMB_SIZE: u32 = 256;

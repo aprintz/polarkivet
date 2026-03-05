@@ -1,3 +1,4 @@
+use image::GenericImageView;
 use serde::Serialize;
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Emitter, Manager};
@@ -19,7 +20,7 @@ pub async fn scan_directory(app: AppHandle, path: String) -> Result<u64, String>
         .app_data_dir()
         .map_err(|e| e.to_string())?;
 
-    tokio::task::spawn_blocking(move || do_scan(app, app_dir, path))
+    tauri::async_runtime::spawn_blocking(move || do_scan(app, app_dir, path))
         .await
         .map_err(|e| e.to_string())?
 }
