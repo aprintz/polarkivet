@@ -3,6 +3,61 @@ use serde::Serialize;
 use tauri::{AppHandle, Manager};
 
 #[derive(Serialize)]
+pub struct Stats {
+    pub image_count: i64,
+    pub last_indexed_at: Option<String>,
+}
+
+#[tauri::command]
+pub async fn get_config(app: AppHandle) -> Result<crate::config::Config, String> {
+    let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    Ok(crate::config::load(&app_dir))
+}
+
+#[tauri::command]
+pub async fn save_config(app: AppHandle, scan_root: Option<String>) -> Result<(), String> {
+    let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let mut config = crate::config::load(&app_dir);
+    config.scan_root = scan_root;
+    crate::config::save(&app_dir, &config)
+}
+
+#[tauri::command]
+pub async fn clear_index(app: AppHandle) -> Result<(), String> {
+    let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let conn = crate::db::open(&app_dir).map_err(|e| e.to_string())?;
+        conn.execute_batch(
+            "DELETE FROM images;
+             INSERT INTO images_fts(images_fts) VALUES('rebuild');",
+        )
+        .map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn get_stats(app: AppHandle) -> Result<Stats, String> {
+    let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let conn = crate::db::open(&app_dir).map_err(|e| e.to_string())?;
+        let image_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM images", [], |row| row.get(0))
+            .map_err(|e| e.to_string())?;
+        let last_indexed_at: Option<String> = conn
+            .query_row("SELECT MAX(indexed_at) FROM images", [], |row| row.get(0))
+            .unwrap_or(None);
+        Ok(Stats {
+            image_count,
+            last_indexed_at,
+        })
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[derive(Serialize)]
 pub struct ImageRecord {
     pub id: i64,
     pub path: String,

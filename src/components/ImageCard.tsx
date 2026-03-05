@@ -4,9 +4,10 @@ import type { ImageRecord } from "../hooks/useImages";
 
 interface Props {
   image: ImageRecord;
+  onClick?: () => void;
 }
 
-export function ImageCard({ image }: Props) {
+export function ImageCard({ image, onClick }: Props) {
   const [imgError, setImgError] = useState(false);
 
   const thumbSrc =
@@ -22,6 +23,7 @@ export function ImageCard({ image }: Props) {
 
   return (
     <div
+      onClick={onClick}
       style={{
         display: "flex",
         flexDirection: "column",
@@ -29,7 +31,7 @@ export function ImageCard({ image }: Props) {
         border: "1px solid #2a2a2a",
         borderRadius: "6px",
         overflow: "hidden",
-        cursor: "default",
+        cursor: onClick ? "pointer" : "default",
         transition: "border-color 0.15s",
       }}
       onMouseEnter={(e) =>

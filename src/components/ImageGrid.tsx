@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useImages } from "../hooks/useImages";
 import { useSearch } from "../hooks/useSearch";
 import { ImageCard } from "./ImageCard";
+import type { ImageRecord } from "../hooks/useImages";
 
 const PAGE_SIZE = 200;
 
@@ -10,9 +11,10 @@ interface Props {
   query: string;
   fromDate: string;
   toDate: string;
+  onImageClick?: (images: ImageRecord[], index: number) => void;
 }
 
-export function ImageGrid({ scanKey, query, fromDate, toDate }: Props) {
+export function ImageGrid({ scanKey, query, fromDate, toDate, onImageClick }: Props) {
   const [page, setPage] = useState(0);
   const offset = page * PAGE_SIZE;
 
@@ -77,8 +79,12 @@ export function ImageGrid({ scanKey, query, fromDate, toDate }: Props) {
           gap: "0.5rem",
         }}
       >
-        {images.map((img) => (
-          <ImageCard key={img.id} image={img} />
+        {images.map((img, idx) => (
+          <ImageCard
+            key={img.id}
+            image={img}
+            onClick={onImageClick ? () => onImageClick(images, idx) : undefined}
+          />
         ))}
       </div>
 

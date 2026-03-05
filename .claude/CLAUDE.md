@@ -45,7 +45,7 @@ See [.claude/plans/architecture.md](.claude/plans/architecture.md) for the full 
 | 2 | EXIF metadata + thumbnail generation | complete |
 | 3 | React thumbnail grid UI | complete |
 | 4 | Full-text search (FTS5) + date filter | complete |
-| 5 | Lightbox + settings + first-run UX | pending |
+| 5 | Lightbox + settings + first-run UX | complete |
 | 6 | Mac/Windows packaging + distribution | pending |
 
 Update the Status column as phases are completed.
